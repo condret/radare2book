@@ -265,8 +265,6 @@ ADDR BREAK
 <tr><td>[]<br>[*]<br>[1]<br>[2]<br>[4]<br>[8]</td><td>src</td><td>peek</td><td>stack=*src</td><td><br>&gt; w test@0x10000<br><br>&gt; &quot;ae 0x10000,[4],&quot;<br>0x74736574<br><br>&gt; ar r_00=0x10000<br><br>&gt; &quot;ae r_00,[4],&quot;<br>0x74736574</td></tr>
 <tr><td>|=[]<br>|=[1]<br>|=[2]<br>|=[4]<br>|=[8]</td><td>reg</td><td>nombre</td><td>code</td><td>&gt; <br>&gt;</td></tr>
 <tr><td>SWAP</td><td></td><td>Swap</td><td>Swap two top elements</td><td>SWAP</td></tr>
-<tr><td>PICK</td><td>n</td><td>Pick</td><td>Pick nth element<br> from the top of the stack</td><td>2,PICK</td></tr>
-<tr><td>RPICK</td><td>m</td><td>Reverse Pick</td><td>Pick nth element<br> from the base of the stack</td><td>0,RPICK</td></tr>
 <tr><td>DUP</td><td></td><td>Duplicate</td><td>Duplicate top element in stack</td><td>DUP</td></tr>
 <tr><td>NUM</td><td></td><td>Numeric</td><td>If top element is a reference <br> (register name, label, etc),<br> dereference it and push its real value</td><td>NUM</td></tr>
 <tr><td>CLEAR</td><td></td><td>Clear</td><td>Clear stack</td><td>CLEAR</td></tr>
@@ -282,8 +280,8 @@ Note, that there also exist weak eq operations (e.g. <code>:=</code>), which do 
 The <code>==</code> operation affects flag operations, despite not being an eq operation.
 Flag operations are prefixed with <code>$</code> character.</p>
 <pre><code>z      - zero flag, only set if the result of an operation is 0
-b      - borrow, this requires to specify from which bit (example: $b4 - checks if borrow from bit 4)
-c      - carry, same like above (example: $c7 - checks if carry from bit 7)
+b      - borrow, this requires to specify from which bit (example: 4,$b - checks if borrow from bit 4)
+c      - carry, same like above (example: 7,$c - checks if carry from bit 7)
 o      - overflow
 p      - parity
 r      - regsize ( asm.bits/8 )
@@ -324,7 +322,7 @@ a,b,/=     b /= a
 </code></pre>
 <p>This approach is more readable, but it is less stack-friendly.</p>
 <h3><a class="header" href="#special-instructions" id="special-instructions">Special Instructions</a></h3>
-<p>NOPs are represented as empty strings. As it was said previously, syscalls are marked by '$' command. For example, '0x80,$'. It delegates emulation from the ESIL machine to a callback which implements syscalls for a specific OS/kernel.</p>
+<p>NOPs are represented as empty strings. As it was said previously, interrupts are marked by '$' command. For example, '0x80,$'. It delegates emulation from the ESIL machine to a callback which implements interrupt handler for a specific OS/kernel/platform.</p>
 <p>Traps are implemented with the <code>TRAP</code> command. They are used to throw exceptions for invalid instructions, division by zero, memory read error, or any other needed by specific architectures.</p>
 <h3><a class="header" href="#quick-analysis" id="quick-analysis">Quick Analysis</a></h3>
 <p>Here is a list of some quick checks to retrieve information from an ESIL string. Relevant information will be probably found in the first expression of the list.</p>
