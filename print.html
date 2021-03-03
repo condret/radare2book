@@ -3049,7 +3049,8 @@ ADDR BREAK
 <p>Here is the complete instruction set used by the ESIL VM:</p>
 <table><thead><tr><th>ESIL Opcode</th><th>Operands</th><th>Name</th><th>Operation</th><th>example</th></tr></thead><tbody>
 <tr><td>TRAP</td><td>src</td><td>Trap</td><td>Trap signal</td><td></td></tr>
-<tr><td><strong>$</strong></td><td>src</td><td>Syscall</td><td>syscall</td><td></td></tr>
+<tr><td><strong>$</strong></td><td>src</td><td>Interrupt</td><td>interrupt</td><td>0x80,$</td></tr>
+<tr><td><strong>()</strong></td><td>src</td><td>Syscall</td><td>syscall</td><td>rax,()</td></tr>
 <tr><td><strong>$$</strong></td><td>src</td><td>Instruction address</td><td>Get address of current instruction<br>stack=instruction address</td><td></td></tr>
 <tr><td><strong>==</strong></td><td>src,dst</td><td>Compare</td><td>stack = (dst == src) ; <br> update_eflags(dst - src)</td><td></td></tr>
 <tr><td><strong>&lt;</strong></td><td>src,dst</td><td>Smaller (signed comparison)</td><td>stack = (dst &lt; src) ; <br> update_eflags(dst - src)</td><td>[0x0000000]&gt; &quot;ae 1,5,&lt;&quot; <br>0x0<br>&gt; &quot;ae 5,5&quot;<br>0x0&quot;</td></tr>
@@ -3075,6 +3076,7 @@ ADDR BREAK
 <tr><td><strong>++</strong></td><td>src</td><td>INC</td><td>stack = src++</td><td>&gt; ar r_00=0;ar r_00<br>0x00000000<br>&gt; &quot;ae r_00,++&quot;<br>0x1<br>&gt; ar r_00<br>0x00000000<br>&gt; &quot;ae 1,++&quot;<br>0x2</td></tr>
 <tr><td><strong>--</strong></td><td>src</td><td>DEC</td><td>stack = src--</td><td>&gt; ar r_00=5;ar r_00<br>0x00000005<br>&gt; &quot;ae r_00,--&quot;<br>0x4<br>&gt; ar r_00<br>0x00000005<br>&gt; &quot;ae 5,--&quot;<br>0x4</td></tr>
 <tr><td><strong>=</strong></td><td>src,reg</td><td>EQU</td><td>reg = src</td><td>&gt; &quot;ae 3,r_00,=&quot;<br>&gt; aer r_00<br>0x00000003<br>&gt; &quot;ae r_00,r_01,=&quot;<br>&gt; aer r_01<br>0x00000003</td></tr>
+<tr><td><strong>:=</strong></td><td>src,reg</td><td>weak EQU</td><td>reg = src without side effects</td><td>&gt; &quot;ae 3,r_00,:=&quot;<br>&gt; aer r_00<br>0x00000003<br>&gt; &quot;ae r_00,r_01,:=&quot;<br>&gt; aer r_01<br>0x00000003</td></tr>
 <tr><td><strong>+=</strong></td><td>src,reg</td><td>ADD eq</td><td>reg = reg + src</td><td>&gt; ar r_01=5;ar r_00=0;ar r_00<br>0x00000000<br>&gt; &quot;ae r_01,r_00,+=&quot;<br>&gt; ar r_00<br>0x00000005<br>&gt; &quot;ae 5,r_00,+=&quot;<br>&gt; ar r_00<br>0x0000000a</td></tr>
 <tr><td><strong>-=</strong></td><td>src,reg</td><td>SUB eq</td><td>reg = reg - src</td><td>&gt; &quot;ae r_01,r_00,-=&quot;<br>&gt; ar r_00<br>0x00000004<br>&gt; &quot;ae 3,r_00,-=&quot;<br>&gt; ar r_00<br>0x00000001</td></tr>
 <tr><td><strong>*=</strong></td><td>src,reg</td><td>MUL eq</td><td>reg = reg * src</td><td>&gt; ar r_01=3;ar r_00=5;ar r_00<br>0x00000005<br>&gt; &quot;ae r_01,r_00,*=&quot;<br>&gt; ar r_00<br>0x0000000f<br>&gt; &quot;ae 2,r_00,*=&quot;<br>&gt; ar r_00<br>0x0000001e</td></tr>
@@ -3103,8 +3105,12 @@ ADDR BREAK
 <tr><td>TODO</td><td></td><td>To Do</td><td>Stops execution<br> (reason: ESIL expression not completed)</td><td>TODO</td></tr>
 </tbody></table>
 <h3><a class="header" href="#esil-flags" id="esil-flags">ESIL Flags</a></h3>
-<p>ESIL VM has an internal state flags that are read-only and can be used to export those values to the underlying target CPU flags. It is because the ESIL VM always calculates all flag changes, while target CPUs only update flags under certain conditions or at specific instructions.</p>
-<p>Internal flags are prefixed with <code>$</code> character.</p>
+<p>ESIL VM provides by default a set of helper operations for calculating flags.
+They fulfill their purpose by comparing the old and the new value of the dst operand of the last performed eq-operation.
+On every eq-operation (e.g. <code>=</code>) ESIL saves the old and new value of the dst operand.
+Note, that there also exist weak eq operations (e.g. <code>:=</code>), which do not affect flag operations.
+The <code>==</code> operation affects flag operations, despite not being an eq operation.
+Flag operations are prefixed with <code>$</code> character.</p>
 <pre><code>z      - zero flag, only set if the result of an operation is 0
 b      - borrow, this requires to specify from which bit (example: $b4 - checks if borrow from bit 4)
 c      - carry, same like above (example: $c7 - checks if carry from bit 7)
@@ -3115,9 +3121,6 @@ s      - sign
 ds     - delay slot state
 jt     - jump target
 js     - jump target set
-[0-9]* - Used to set flags and registers without having any side effects,
-         i.e. setting esil_cur, esil_old and esil_lastsz.
-         (example: &quot;$0,of,=&quot; to reset the overflow flag)
 </code></pre>
 <h2><a class="header" href="#syntax-and-commands" id="syntax-and-commands">Syntax and Commands</a></h2>
 <p>A target opcode is translated into a comma separated list of ESIL expressions.</p>
